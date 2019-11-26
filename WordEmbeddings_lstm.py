@@ -5,14 +5,14 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
 from keras import Sequential
 from keras.layers import Embedding, Dropout, Conv1D, MaxPooling1D, Flatten, Dense, GlobalMaxPooling1D, Activation, \
-    GlobalMaxPool1D
+    GlobalMaxPool1D, ConvLSTM2D, BatchNormalization, Conv3D
 from keras.utils import to_categorical
 from keras_preprocessing.text import Tokenizer
 from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.model_selection import train_test_split
 from tensorflow import keras
-
+from hyperas.distributions import uniform
 from keras.preprocessing.sequence import pad_sequences
 
 
@@ -28,7 +28,10 @@ dataset = dataset.dropna(how='any',axis=0)
 # x & y holds values
 X = dataset['Text']
 y = dataset['Rating']
-
+sum = 0
+for item in X:
+    sum = sum + len(item.split())
+print(sum)
 # create training and test sets with test as 28%
 train_data, test_data, train_labels, test_labels = train_test_split(X, y, test_size=0.33, random_state=42)
 
@@ -64,46 +67,35 @@ test_labels = to_categorical(test_labels, dtype='float32')
 
 # creating model
 model = Sequential()
-# model.add(Embedding(num_words, embedding_dims, input_length=max_len))
-# # prevents overfitting
-# model.add(Dropout(0.2))
-# model.add(Conv1D(filters, kernel_size,
-#                  padding='valid',
-#                  activation='relu', strides=1))
-# # max pooling
-# model.add(GlobalMaxPooling1D())
-# # model.add(Conv1D(filters, kernel_size,
-# #                  padding='valid',
-# #                  activation='relu'))
-# # model.add(MaxPooling1D())
-#
-# # vanilla hidden layer
-# model.add(Dense(hidden_dims, activation='relu'))
-# model.add(Dropout(0.2))
-# model.add(Dense(1, activation='sigmoid'))
+model.add(ConvLSTM2D(filters=40, kernel_size=(3, 3),
+                   input_shape=(None, 40, 40, 1),
+                   padding='same', return_sequences=True))
+model.add(BatchNormalization())
 
-model.add(Embedding(num_words, embedding_dims, input_length=max_len))
+model.add(ConvLSTM2D(filters=40, kernel_size=(3, 3),
+                   padding='same', return_sequences=True))
+model.add(BatchNormalization())
 
+model.add(ConvLSTM2D(filters=40, kernel_size=(3, 3),
+                   padding='same', return_sequences=True))
+model.add(BatchNormalization())
 
-model.add(Conv1D(hidden_dims,kernel_size ,padding='valid',activation='relu',strides=1))
-model.add(GlobalMaxPooling1D())
-#model.add(MaxPooling1D())
-# prevents overfitting
+model.add(ConvLSTM2D(filters=40, kernel_size=(3, 3),
+                   padding='same', return_sequences=True))
+model.add(BatchNormalization())
 
-model.add(Dense(hidden_dims))
-model.add(Dropout(0.2))
-model.add(Activation('relu'))
-model.add(Dense(3))
-model.add(Activation('sigmoid'))
-model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['acc'])
-model.compile(loss='binary_crossentropy',
-              optimizer='adam',
-              metrics=['accuracy'])
+model.add(Conv3D(filters=1, kernel_size=(3, 3, 3),
+               activation='sigmoid',
+               padding='same', data_format='channels_last'))
 model.summary()
+model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['acc'])
+
+
 model.fit(train_data, train_labels,
           batch_size=batch_size,
           epochs=epochs,
           validation_data=(test_data, test_labels))
+
 
 loss, accuracy = model.evaluate(train_data, train_labels, verbose=False)
 print("Training Accuracy: {:.4f}".format(accuracy))
