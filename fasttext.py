@@ -2,13 +2,14 @@ import numpy as np
 
 import pandas as pd
 from keras.preprocessing import sequence
+from keras.wrappers.scikit_learn import KerasClassifier
 from keras_preprocessing.text import Tokenizer
 from sklearn.preprocessing import LabelEncoder
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import Embedding
 from keras.layers import GlobalAveragePooling1D
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from keras.utils import to_categorical
 
 def create_ngram_set(input_list, ngram_value=2):
@@ -60,12 +61,12 @@ maxlen = 400
 num_words = 5000
 batch_size = 32
 embedding_dims = 50
-epochs = 5
+epochs = 1
 
 print('Loading data...')
 # Loading data
 
-dataset = pd.read_csv("full_amazon_ff_reviews.csv")
+dataset = pd.read_csv("reduced_amazon_ff_reviews.csv")
 # counts null values
 print(dataset.isnull().any().sum())
 # remove null values
@@ -150,7 +151,13 @@ model.add(Dense(3, activation='sigmoid'))
 
 model.compile(loss="categorical_crossentropy",optimizer='rmsprop',metrics=['acc'])
 
-model.fit(x_train, train_labels,
-          batch_size=batch_size,
-          epochs=epochs,
-          validation_data=(x_test, test_labels))
+# model.fit(x_train, train_labels,
+#           batch_size=batch_size,
+#           epochs=epochs,
+#           validation_data=(x_test, test_labels))
+
+neural_network = KerasClassifier(model, batch_size=batch_size,
+                                   epochs=epochs,
+                                   verbose=0)
+
+cross_val_score(neural_network, train_data, test_data, cv=10)

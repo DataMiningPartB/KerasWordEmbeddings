@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from keras import Sequential
 from keras.layers import Embedding, Dropout, Conv1D, MaxPooling1D, Flatten, Dense, GlobalMaxPooling1D, Activation, \
     GlobalMaxPool1D
@@ -53,14 +53,24 @@ test_data = tokenizer.texts_to_sequences(test_data)
 train_data = pad_sequences(train_data, maxlen=max_len)
 test_data = pad_sequences(test_data, maxlen=max_len)
 print(train_data)
-# One-hot encoding needs to be done
+
+# integer encoding
 label_encoder = LabelEncoder()
 train_labels = label_encoder.fit_transform(train_labels)
 test_labels = label_encoder.fit_transform(test_labels)
-
 print(train_labels)
+
+# one hot encoding
+onehot_encoder = OneHotEncoder(sparse=False)
+train_labels = train_labels.reshape(len(train_labels), 1)
+test_labels = test_labels.reshape(len(test_labels), 1)
+onehot_encoded_train = onehot_encoder.fit_transform(train_labels)
+onehot_encoded_test = onehot_encoder.fit_transform(test_labels)
+print(train_labels)
+
 train_labels = to_categorical(train_labels, dtype='float32')
 test_labels = to_categorical(test_labels, dtype='float32')
+print(train_labels)
 
 # creating model
 model = Sequential()
@@ -95,10 +105,12 @@ model.add(Dropout(0.2))
 model.add(Activation('relu'))
 model.add(Dense(3))
 model.add(Activation('sigmoid'))
+
 model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['acc'])
 model.compile(loss='binary_crossentropy',
               optimizer='adam',
               metrics=['accuracy'])
+
 model.summary()
 model.fit(train_data, train_labels,
           batch_size=batch_size,
