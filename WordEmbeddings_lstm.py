@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
 from keras import Sequential
 from keras.layers import Embedding, Dropout, Conv1D, MaxPooling1D, Flatten, Dense, GlobalMaxPooling1D, Activation, \
-    GlobalMaxPool1D, ConvLSTM2D, BatchNormalization, Conv3D
+    GlobalMaxPool1D, ConvLSTM2D, BatchNormalization, Conv3D, LSTM, SpatialDropout1D, Lambda
 from keras.utils import to_categorical
 from keras_preprocessing.text import Tokenizer
 from nltk.corpus import stopwords
@@ -67,26 +67,21 @@ test_labels = to_categorical(test_labels, dtype='float32')
 
 # creating model
 model = Sequential()
-model.add(ConvLSTM2D(filters=40, kernel_size=(3, 3),
-                   input_shape=(None, 40, 40, 1),
-                   padding='same', return_sequences=True))
-model.add(BatchNormalization())
+model.add(Embedding(num_words, embedding_dims, input_length=max_len))
+model.add(Dense(512))
+model.add(SpatialDropout1D(0.2))
 
-model.add(ConvLSTM2D(filters=40, kernel_size=(3, 3),
-                   padding='same', return_sequences=True))
-model.add(BatchNormalization())
 
-model.add(ConvLSTM2D(filters=40, kernel_size=(3, 3),
-                   padding='same', return_sequences=True))
-model.add(BatchNormalization())
+model.add(LSTM(100, dropout=0.2, recurrent_dropout=0.2, return_sequences=True))
+model.add(GlobalMaxPooling1D())
+model.add(Dense(300))
+# prevents overfitting
+model.add(Dropout(0.2))
+model.add(Activation('relu'))
+model.add(Dense(3))
+model.add(Activation('sigmoid'))
+model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['acc'])
 
-model.add(ConvLSTM2D(filters=40, kernel_size=(3, 3),
-                   padding='same', return_sequences=True))
-model.add(BatchNormalization())
-
-model.add(Conv3D(filters=1, kernel_size=(3, 3, 3),
-               activation='sigmoid',
-               padding='same', data_format='channels_last'))
 model.summary()
 model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['acc'])
 
